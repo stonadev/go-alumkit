@@ -316,3 +316,8 @@ func getEnv(key, fallback string) string {
 	}
 	return fallback
 }
+
+// newRouter creates a chi router (used for testing without DB)
+func newRouter() chi.Router {
+	return chi.NewRouter()
+}
