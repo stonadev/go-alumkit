@@ -4,37 +4,24 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+
+	"github.com/joho/godotenv"
 )
 
 // Config holds application configuration
 type Config struct {
-	DB          DatabaseConfig
-	Session     SessionConfig
-	Mail        MailConfig
-	App         AppConfig
-	Features    FeatureConfig
-	Seeder      SeederConfig
-}
-
-// DatabaseConfig holds database configuration
-type DatabaseConfig struct {
-	Host     string
-	Port     string
-	User     string
-	Password string
-	Name     string
-	SSLMode  string
-}
-
-// DSN returns the database connection string
-func (d DatabaseConfig) DSN() string {
-	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
-		d.User, d.Password, d.Host, d.Port, d.Name, d.SSLMode)
-}
-
-// SessionConfig holds session configuration
-type SessionConfig struct {
-	Key string
+	DBHost          string
+	DBPort          string
+	DBUser          string
+	DBPassword      string
+	DBName          string
+	DBSSLMode       string
+	SessionKey      string
+	AppURL          string
+	MaintenanceMode bool
+	Mail            MailConfig
+	Features        FeatureConfig
+	Seeder          SeederConfig
 }
 
 // MailConfig holds SMTP configuration
@@ -45,12 +32,6 @@ type MailConfig struct {
 	Password string
 	From     string
 	FromName string
-}
-
-// AppConfig holds application configuration
-type AppConfig struct {
-	URL             string
-	MaintenanceMode bool
 }
 
 // FeatureConfig holds feature flags
@@ -66,36 +47,43 @@ type SeederConfig struct {
 	AdminPassword string
 }
 
-// Load loads configuration from environment variables
-func Load() *Config {
+// DSN returns the database connection string
+func (c *Config) DSN() string {
+	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
+		c.DBUser, c.DBPassword, c.DBHost, c.DBPort, c.DBName, c.DBSSLMode)
+}
+
+// Load loads configuration from environment variables.
+// If path is provided, it loads the .env file first.
+func Load(path string) (*Config, error) {
+	if path != "" {
+		if err := godotenv.Load(path); err != nil {
+			return nil, fmt.Errorf("failed to load .env: %w", err)
+		}
+	}
+
 	mailPort, _ := strconv.Atoi(getEnv("MAIL_PORT", "587"))
 	maintenanceMode, _ := strconv.ParseBool(getEnv("MAINTENANCE_MODE", "false"))
 	featurePosts, _ := strconv.ParseBool(getEnv("FEATURE_POSTS", "true"))
 	featureCommittee, _ := strconv.ParseBool(getEnv("FEATURE_COMMITTEE", "true"))
 
 	return &Config{
-		DB: DatabaseConfig{
-			Host:     getEnv("DB_HOST", "localhost"),
-			Port:     getEnv("DB_PORT", "5432"),
-			User:     getEnv("DB_USER", "alumkit"),
-			Password: getEnv("DB_PASSWORD", ""),
-			Name:     getEnv("DB_NAME", "alumkit"),
-			SSLMode:  getEnv("DB_SSLMODE", "disable"),
-		},
-		Session: SessionConfig{
-			Key: getEnv("SESSION_KEY", ""),
-		},
+		DBHost:          getEnv("DB_HOST", ""),
+		DBPort:          getEnv("DB_PORT", ""),
+		DBUser:          getEnv("DB_USER", ""),
+		DBPassword:      getEnv("DB_PASSWORD", ""),
+		DBName:          getEnv("DB_NAME", ""),
+		DBSSLMode:       getEnv("DB_SSLMODE", "disable"),
+		SessionKey:      getEnv("SESSION_KEY", ""),
+		AppURL:          getEnv("APP_URL", ""),
+		MaintenanceMode: maintenanceMode,
 		Mail: MailConfig{
 			Host:     getEnv("MAIL_HOST", ""),
 			Port:     mailPort,
 			Username: getEnv("MAIL_USERNAME", ""),
 			Password: getEnv("MAIL_PASSWORD", ""),
 			From:     getEnv("MAIL_FROM", ""),
-			FromName: getEnv("MAIL_FROM_NAME", "AlumKit"),
-		},
-		App: AppConfig{
-			URL:             getEnv("APP_URL", "http://localhost:8080"),
-			MaintenanceMode: maintenanceMode,
+			FromName: getEnv("MAIL_FROM_NAME", ""),
 		},
 		Features: FeatureConfig{
 			Posts:     featurePosts,
@@ -106,12 +94,12 @@ func Load() *Config {
 			AdminEmail:    getEnv("ADMIN_EMAIL", ""),
 			AdminPassword: getEnv("ADMIN_PASSWORD", ""),
 		},
-	}
+	}, nil
 }
 
 func getEnv(key, fallback string) string {
-	if value, exists := os.LookupEnv(key); exists {
-		return value
+	if v, ok := os.LookupEnv(key); ok {
+		return v
 	}
 	return fallback
 }

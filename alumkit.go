@@ -3,105 +3,27 @@ package alumkit
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/joho/godotenv"
 	"github.com/stonadev/alumkit/internal/auth"
+	"github.com/stonadev/alumkit/internal/config"
 	"github.com/stonadev/alumkit/internal/handler"
 	"github.com/stonadev/alumkit/internal/rbac"
 )
 
-// Config holds all configuration for AlumKit
-type Config struct {
-	DBHost     string
-	DBPort     string
-	DBUser     string
-	DBPassword string
-	DBName     string
-	DBSSLMode  string
-
-	SessionKey      string
-	AppURL          string
-	MaintenanceMode bool
-
-	Mail     MailConfig
-	Features FeatureConfig
-	Seeder   SeederConfig
-}
-
-// MailConfig holds SMTP configuration
-type MailConfig struct {
-	Host     string
-	Port     int
-	Username string
-	Password string
-	From     string
-	FromName string
-}
-
-// FeatureConfig holds feature flags
-type FeatureConfig struct {
-	Posts     bool
-	Committee bool
-}
-
-// SeederConfig holds seeder configuration
-type SeederConfig struct {
-	AdminName     string
-	AdminEmail    string
-	AdminPassword string
-}
+// Re-export config types for public API
+type Config = config.Config
+type MailConfig = config.MailConfig
+type FeatureConfig = config.FeatureConfig
+type SeederConfig = config.SeederConfig
 
 // LoadConfig loads configuration from .env file
 func LoadConfig(path string) (*Config, error) {
-	if path != "" {
-		if err := godotenv.Load(path); err != nil {
-			return nil, fmt.Errorf("failed to load .env: %w", err)
-		}
-	}
-
-	mailPort, _ := strconv.Atoi(getEnv("MAIL_PORT", "587"))
-	maintenanceMode, _ := strconv.ParseBool(getEnv("MAINTENANCE_MODE", "false"))
-	featurePosts, _ := strconv.ParseBool(getEnv("FEATURE_POSTS", "true"))
-	featureCommittee, _ := strconv.ParseBool(getEnv("FEATURE_COMMITTEE", "true"))
-
-	cfg := &Config{
-		DBHost:          getEnv("DB_HOST", ""),
-		DBPort:          getEnv("DB_PORT", ""),
-		DBUser:          getEnv("DB_USER", ""),
-		DBPassword:      getEnv("DB_PASSWORD", ""),
-		DBName:          getEnv("DB_NAME", ""),
-		DBSSLMode:       getEnv("DB_SSLMODE", "disable"),
-		SessionKey:      getEnv("SESSION_KEY", ""),
-		AppURL:          getEnv("APP_URL", "http://localhost:8080"),
-		MaintenanceMode: maintenanceMode,
-		Mail: MailConfig{
-			Host:     getEnv("MAIL_HOST", ""),
-			Port:     mailPort,
-			Username: getEnv("MAIL_USERNAME", ""),
-			Password: getEnv("MAIL_PASSWORD", ""),
-			From:     getEnv("MAIL_FROM", ""),
-			FromName: getEnv("MAIL_FROM_NAME", "AlumKit"),
-		},
-		Features: FeatureConfig{
-			Posts:     featurePosts,
-			Committee: featureCommittee,
-		},
-		Seeder: SeederConfig{
-			AdminName:     getEnv("ADMIN_NAME", ""),
-			AdminEmail:    getEnv("ADMIN_EMAIL", ""),
-			AdminPassword: getEnv("ADMIN_PASSWORD", ""),
-		},
-	}
-
-	return cfg, nil
+	return config.Load(path)
 }
 
 // App is the main application
@@ -110,11 +32,11 @@ type App struct {
 	db       *sql.DB
 	session  *auth.SessionStore
 	enforcer *rbac.Enforcer
-	config   Config
+	config   *Config
 }
 
 // New creates a new AlumKit app
-func New(cfg Config) *App {
+func New(cfg *Config) *App {
 	// Validate required fields
 	if cfg.DBHost == "" {
 		log.Fatal("DB_HOST is required")
@@ -135,12 +57,8 @@ func New(cfg Config) *App {
 		cfg.DBSSLMode = "disable"
 	}
 
-	// Build database URL from config
-	dbURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
-		cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBName, cfg.DBSSLMode)
-
 	// Connect to database
-	db, err := sql.Open("pgx", dbURL)
+	db, err := sql.Open("pgx", cfg.DSN())
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
@@ -155,8 +73,6 @@ func New(cfg Config) *App {
 
 	router := chi.NewRouter()
 
-	// Initialize session store for user authentication
-	// Uses the database to persist sessions and the session key for signing cookies
 	session := auth.InitSession(db, cfg.SessionKey)
 	enforcer := rbac.InitEnforcer(db)
 
@@ -219,7 +135,7 @@ func (a *App) DB() *sql.DB {
 }
 
 // Config returns the app configuration
-func (a *App) Config() Config {
+func (a *App) Config() *Config {
 	return a.config
 }
 
@@ -271,31 +187,26 @@ type User struct {
 
 // RecentCommitteeMembers returns the most recent committee members
 func (a *App) RecentCommitteeMembers(ctx context.Context) ([]CommitteeMember, error) {
-	// TODO: Implement sqlc query
 	return nil, nil
 }
 
 // PublishedPosts returns all published posts
 func (a *App) PublishedPosts(ctx context.Context) ([]Post, error) {
-	// TODO: Implement sqlc query
 	return nil, nil
 }
 
 // PostBySlug returns a post by slug
 func (a *App) PostBySlug(ctx context.Context, slug string) (*Post, error) {
-	// TODO: Implement sqlc query
 	return nil, nil
 }
 
 // GetProfileByUserID returns a profile by user ID
 func (a *App) GetProfileByUserID(ctx context.Context, userID int64) (*Profile, error) {
-	// TODO: Implement sqlc query
 	return nil, nil
 }
 
 // GetUserByID returns a user by ID
 func (a *App) GetUserByID(ctx context.Context, userID int64) (*User, error) {
-	// TODO: Implement sqlc query
 	return nil, nil
 }
 
@@ -307,14 +218,6 @@ func (a *App) RequireAuth(next http.Handler) http.Handler {
 // RequireVerified middleware
 func (a *App) RequireVerified(next http.Handler) http.Handler {
 	return auth.RequireVerified(a.db, next)
-}
-
-// getEnv retrieves an environment variable with a fallback value
-func getEnv(key, fallback string) string {
-	if value, exists := os.LookupEnv(key); exists {
-		return value
-	}
-	return fallback
 }
 
 // newRouter creates a chi router (used for testing without DB)

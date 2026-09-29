@@ -24,7 +24,7 @@ func main() {
 	}
 
 	// Create app (connects to DB internally)
-	app := alumkit.New(*cfg)
+	app := alumkit.New(cfg)
 
 	// Public routes
 	app.Get("/", homepageHandler(app))
