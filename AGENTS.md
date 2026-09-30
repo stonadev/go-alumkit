@@ -5,20 +5,36 @@ Go module: `github.com/stonadev/alumkit`. Library consumed by Go web apps.
 ## Structure
 
 ```
-alumkit.go          # Public API: New(), App, Config, LoadConfig()
+alumkit.go              # Public API: New(), App, Config, LoadConfig()
 internal/
-  config/           # Config struct + Load() from env/dotenv
-  auth/             # Session store, RequireAuth middleware
-  rbac/             # Casbin enforcer, RequirePermission middleware
-  handler/          # Dashboard route handlers (/dashboard/*)
-  middleware/       # CORS, CSP, security headers
-  mail/             # SMTP sender
-  db/               # Connection wrapper
-  activitylog/      # Audit logging
-example/            # Demo app (separate go.mod, uses replace directive)
-resources/          # Source CSS (Tailwind v4), JS (Editor.js, Cropper.js)
-static/             # Build output - embedded in binary via go:embed
+  config/               # Config struct + Load() from env/dotenv
+  auth/                 # Session store, RequireAuth middleware
+  rbac/                 # Casbin enforcer, RequirePermission middleware
+  repo/                 # Data access layer (interfaces + stubs)
+    auth.go, users.go, posts.go
+  service/              # Business logic layer (interfaces + stubs)
+    auth.go, users.go, posts.go
+  handler/              # HTTP layer (split by domain)
+    handler.go, routes.go, auth.go, dashboard.go, users.go, posts.go
+  middleware/           # CORS, CSP, security headers
+  mail/                 # SMTP sender
+  db/                   # Connection wrapper
+  activitylog/          # Audit logging
+example/                # Demo app (separate go.mod, uses replace directive)
+resources/              # Source CSS (Tailwind v4), JS (Editor.js, Cropper.js)
+static/                 # Build output - embedded in binary via go:embed
+templates/              # DashboardLayout template
 ```
+
+## Architecture
+
+```
+handler → service → repo → db
+```
+
+- **repo**: Data access, interfaces for testability
+- **service**: Business logic, validation, domain types
+- **handler**: HTTP handlers, request/response
 
 ## Key patterns
 
