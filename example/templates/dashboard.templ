@@ -1,0 +1,16 @@
+package templates
+
+// Dashboard layout - includes AlumKit's admin assets
+templ DashboardLayout(title string) {
+	<!DOCTYPE html>
+	<html>
+	<head>
+		<title>{ title }</title>
+		<link rel="stylesheet" href="/alumkit/alumkit.css"/>
+	</head>
+	<body>
+		{ children... }
+		<script src="/alumkit/sortable.min.js"></script>
+	</body>
+	</html>
+}
