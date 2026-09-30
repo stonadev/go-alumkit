@@ -15,6 +15,8 @@ import (
 	"github.com/stonadev/alumkit/internal/config"
 	"github.com/stonadev/alumkit/internal/handler"
 	"github.com/stonadev/alumkit/internal/rbac"
+	"github.com/stonadev/alumkit/internal/repo"
+	"github.com/stonadev/alumkit/internal/service"
 )
 
 //go:embed static/*
@@ -38,6 +40,14 @@ type App struct {
 	session  *auth.SessionStore
 	enforcer *rbac.Enforcer
 	config   *Config
+	services *services
+}
+
+// services holds all service instances
+type services struct {
+	Auth service.AuthService
+	Users service.UserService
+	Posts service.PostService
 }
 
 // New creates a new AlumKit app
@@ -81,16 +91,30 @@ func New(cfg *Config) *App {
 	session := auth.InitSession(db, cfg.SessionKey)
 	enforcer := rbac.InitEnforcer(db)
 
+	// Initialize repositories
+	authRepo := repo.NewAuthRepo(db)
+	userRepo := repo.NewUserRepo(db)
+	postRepo := repo.NewPostRepo(db)
+
+	// Initialize services
+	svcs := &services{
+		Auth:  service.NewAuthService(authRepo),
+		Users: service.NewUserService(userRepo),
+		Posts: service.NewPostService(postRepo),
+	}
+
 	app := &App{
 		router:   router,
 		db:       db,
 		session:  session,
 		enforcer: enforcer,
 		config:   cfg,
+		services: svcs,
 	}
 
 	// Mount admin routes
-	app.router.Mount("/dashboard", handler.RegisterAdminRoutes(session, enforcer, db, cfg.AppURL))
+	adminDeps := handler.New(session, enforcer, svcs.Auth, svcs.Users, svcs.Posts, cfg.AppURL)
+	app.router.Mount("/dashboard", adminDeps.RegisterAdminRoutes())
 
 	// Mount static files (embedded)
 	staticFS, err := fs.Sub(staticFiles, "static")
