@@ -82,6 +82,17 @@ npm run build
 
 Admin routes are auto-mounted at `/dashboard`. Login at `/dashboard/login`.
 
+Use the built-in dashboard template:
+
+```go
+import "github.com/stonadev/alumkit/templates"
+
+// In your templ files
+@templates.DashboardLayout("Admin") {
+    // your content
+}
+```
+
 ## License
 
 MIT
