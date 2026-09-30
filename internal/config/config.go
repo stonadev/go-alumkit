@@ -10,6 +10,7 @@ import (
 
 // Config holds application configuration
 type Config struct {
+	AppName         string
 	DBHost          string
 	DBPort          string
 	DBUser          string
@@ -68,6 +69,7 @@ func Load(path string) (*Config, error) {
 	featureCommittee, _ := strconv.ParseBool(getEnv("FEATURE_COMMITTEE", "true"))
 
 	return &Config{
+		AppName:         getEnv("APP_NAME", "Alumni"),
 		DBHost:          getEnv("DB_HOST", ""),
 		DBPort:          getEnv("DB_PORT", ""),
 		DBUser:          getEnv("DB_USER", ""),
