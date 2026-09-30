@@ -1,0 +1,54 @@
+/* Editor.js specific styles */
+
+.alumkit-editor {
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  background: white;
+}
+
+.alumkit-editor .ce-block {
+  margin-bottom: 0.5rem;
+}
+
+.alumkit-editor .ce-toolbar {
+  padding: 0.5rem;
+}
+
+.alumkit-editor .ce-inline-toolbar {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+/* Image upload area */
+.alumkit-editor .image-upload {
+  border: 2px dashed var(--color-border);
+  border-radius: 0.5rem;
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.alumkit-editor .image-upload:hover {
+  border-color: var(--color-primary);
+}
+
+/* Cropper modal */
+.alumkit-cropper-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.alumkit-cropper-container {
+  background: white;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  max-width: 90vw;
+  max-height: 90vh;
+}

@@ -1,0 +1,16 @@
+package templates
+
+// Layout for public pages - only consuming app's assets
+templ Layout(title string) {
+	<!DOCTYPE html>
+	<html>
+	<head>
+		<title>{ title }</title>
+		<link rel="stylesheet" href="/assets/app.css"/>
+	</head>
+	<body>
+		{ children... }
+		<script src="/assets/app.js"></script>
+	</body>
+	</html>
+}

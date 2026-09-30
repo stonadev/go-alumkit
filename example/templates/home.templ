@@ -1,0 +1,10 @@
+package templates
+
+templ Home(title string, content map[string]any) {
+	@Layout(title) {
+		<section class="hero">
+			<h1>{ content["hero"].(map[string]any)["title"].(string) }</h1>
+			<p>{ content["hero"].(map[string]any)["subtitle"].(string) }</p>
+		</section>
+	}
+}
