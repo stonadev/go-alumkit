@@ -7,10 +7,12 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/spf13/cobra"
 	"github.com/stonadev/alumkit/internal/auth"
 	"github.com/stonadev/alumkit/internal/config"
 	"github.com/stonadev/alumkit/internal/handler"
@@ -41,11 +43,12 @@ type App struct {
 	enforcer *rbac.Enforcer
 	config   *Config
 	services *services
+	rootCmd  *cobra.Command
 }
 
 // services holds all service instances
 type services struct {
-	Auth service.AuthService
+	Auth  service.AuthService
 	Users service.UserService
 	Posts service.PostService
 }
@@ -124,7 +127,33 @@ func New(cfg *Config) *App {
 	app.router.Handle("/alumkit/*",
 		http.StripPrefix("/alumkit/", http.FileServer(http.FS(staticFS))))
 
+	// Setup root command with the built-in migrate command
+	rootCmd := &cobra.Command{
+		Use:   "app",
+		Short: "Your alumni application",
+	}
+	rootCmd.AddCommand(migrateCmd(cfg.DSN()))
+	app.rootCmd = rootCmd
+
 	return app
+}
+
+// AddCommand adds a custom command to the app's root command
+func (a *App) AddCommand(cmd *cobra.Command) {
+	a.rootCmd.AddCommand(cmd)
+}
+
+// Execute runs the root command (migrate, custom commands, etc.)
+func (a *App) Execute() {
+	if err := a.rootCmd.Execute(); err != nil {
+		os.Exit(1)
+	}
+}
+
+// Serve starts the HTTP server
+func (a *App) Serve(addr string) error {
+	log.Printf("Listening on %s", addr)
+	return http.ListenAndServe(addr, a.router)
 }
 
 // Get registers a GET route
