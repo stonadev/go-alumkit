@@ -48,6 +48,7 @@ DB_NAME=alumkit
 SESSION_KEY=your-secret-key-32-chars-min
 
 # Optional
+APP_NAME=Alumni
 DB_PORT=5432
 DB_SSLMODE=disable
 APP_URL=http://localhost:8080
