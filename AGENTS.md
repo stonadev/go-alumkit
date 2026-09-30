@@ -17,7 +17,7 @@ internal/
   activitylog/      # Audit logging
 example/            # Demo app (separate go.mod, uses replace directive)
 resources/          # Source CSS (Tailwind v4), JS (Editor.js, Cropper.js)
-static/             # Build output (npm run build)
+static/             # Build output - embedded in binary via go:embed
 ```
 
 ## Key patterns
@@ -26,6 +26,8 @@ static/             # Build output (npm run build)
 - Admin routes auto-mounted at `/dashboard` via chi `Mount()`
 - Config: env vars only, no defaults for required fields (DB_*, SESSION_KEY)
 - Types re-exported: `alumkit.Config = config.Config`
+- Static files embedded via `//go:embed static/*` (CSS, JS, sortable)
+- Consuming apps mount their own assets: `app.MountStatic("/assets", fs)`
 
 ## Conventions
 

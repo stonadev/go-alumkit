@@ -26,6 +26,10 @@ func main() {
 	// Create app (connects to DB internally)
 	app := alumkit.New(cfg)
 
+	// Mount your own static files (CSS, JS, images for public pages)
+	// Build with: npm run build
+	app.MountStatic("/assets", os.DirFS("public"))
+
 	// Public routes
 	app.Get("/", homepageHandler(app))
 	app.Get("/{slug}", pageHandler(app))

@@ -6,10 +6,12 @@ templ Layout(title string) {
 	<head>
 		<title>{ title }</title>
 		<link rel="stylesheet" href="/alumkit/alumkit.css"/>
+		<link rel="stylesheet" href="/assets/app.css"/>
 	</head>
 	<body>
 		{ children... }
 		<script src="/alumkit/sortable.min.js"></script>
+		<script src="/assets/app.js"></script>
 	</body>
 	</html>
 }

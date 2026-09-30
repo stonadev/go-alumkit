@@ -3,6 +3,8 @@ package alumkit
 import (
 	"context"
 	"database/sql"
+	"embed"
+	"io/fs"
 	"log"
 	"net/http"
 	"time"
@@ -14,6 +16,9 @@ import (
 	"github.com/stonadev/alumkit/internal/handler"
 	"github.com/stonadev/alumkit/internal/rbac"
 )
+
+//go:embed static/*
+var staticFiles embed.FS
 
 // Re-export config types for public API
 type Config = config.Config
@@ -87,9 +92,13 @@ func New(cfg *Config) *App {
 	// Mount admin routes
 	app.router.Mount("/dashboard", handler.RegisterAdminRoutes(session, enforcer, db, cfg.AppURL))
 
-	// Mount static files
+	// Mount static files (embedded)
+	staticFS, err := fs.Sub(staticFiles, "static")
+	if err != nil {
+		log.Fatalf("Failed to access static files: %v", err)
+	}
 	app.router.Handle("/alumkit/*",
-		http.StripPrefix("/alumkit/", http.FileServer(http.Dir("static"))))
+		http.StripPrefix("/alumkit/", http.FileServer(http.FS(staticFS))))
 
 	return app
 }
@@ -127,6 +136,13 @@ func (a *App) Use(middleware ...func(http.Handler) http.Handler) {
 // ServeHTTP implements http.Handler
 func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	a.router.ServeHTTP(w, r)
+}
+
+// MountStatic mounts a filesystem at the given path for consuming apps
+// Example: app.MountStatic("/assets", os.DirFS("public"))
+func (a *App) MountStatic(pattern string, fsys fs.FS) {
+	a.router.Handle(pattern+"/*",
+		http.StripPrefix(pattern+"/", http.FileServer(http.FS(fsys))))
 }
 
 // DB returns the database connection
