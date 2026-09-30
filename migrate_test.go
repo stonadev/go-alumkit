@@ -2,6 +2,7 @@ package alumkit
 
 import (
 	"io/fs"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -87,6 +88,38 @@ func TestBaselineUpIsIdempotent(t *testing.T) {
 	}
 	if got := strings.Count(sql, "IF NOT EXISTS (SELECT 1 FROM pg_constraint"); got == 0 {
 		t.Error("baseline up migration has no guarded constraints")
+	}
+}
+
+func TestSessionsSCSMigration(t *testing.T) {
+	t.Parallel()
+
+	// 000002 replaces the Laravel sessions table with the schema
+	// github.com/alexedwards/scs/v2 postgresstore queries against.
+	tests := []struct {
+		file    string
+		pattern string
+	}{
+		{"000002_sessions_scs.up.sql", `DROP TABLE IF EXISTS sessions`},
+		{"000002_sessions_scs.up.sql", `token\s+text PRIMARY KEY`},
+		{"000002_sessions_scs.up.sql", `data\s+bytea`},
+		{"000002_sessions_scs.up.sql", `expiry\s+timestamptz NOT NULL`},
+		{"000002_sessions_scs.up.sql", `sessions_expiry_idx`},
+		{"000002_sessions_scs.down.sql", `payload\s+text NOT NULL`},
+		{"000002_sessions_scs.down.sql", `last_activity\s+integer NOT NULL`},
+		{"000002_sessions_scs.down.sql", `sessions_pkey`},
+		{"000002_sessions_scs.down.sql", `sessions_last_activity_index`},
+	}
+
+	for i, tt := range tests {
+		tt := tt
+		t.Run(tt.file+"/"+regexp.MustCompile(tt.pattern).String(), func(t *testing.T) {
+			t.Parallel()
+			sql := readMigration(t, tt.file)
+			if !regexp.MustCompile(tt.pattern).MatchString(sql) {
+				t.Errorf("case %d: %s missing /%s/", i, tt.file, tt.pattern)
+			}
+		})
 	}
 }
 
