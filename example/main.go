@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/spf13/cobra"
 	"github.com/stonadev/alumkit"
 )
 
@@ -16,11 +17,14 @@ func getEnv(key, fallback string) string {
 }
 
 func main() {
-	// Load config from .env
+	// Load config from .env (falls back to process environment)
 	cfg, err := alumkit.LoadConfig(".env")
 	if err != nil {
 		log.Printf("Warning: could not load .env: %v", err)
-		cfg = &alumkit.Config{}
+		cfg, err = alumkit.LoadConfig("")
+		if err != nil {
+			log.Fatalf("Failed to load config: %v", err)
+		}
 	}
 
 	// Create app (connects to DB internally)
@@ -34,8 +38,24 @@ func main() {
 	app.Get("/", homepageHandler(app))
 	app.Get("/{slug}", pageHandler(app))
 
-	log.Printf("Listening on :%s", getEnv("PORT", "8080"))
-	log.Fatal(http.ListenAndServe(":"+getEnv("PORT", "8080"), app))
+	// Add serve command and run the root command
+	// (built-in: ./myapp migrate | custom: ./myapp serve)
+	app.AddCommand(serveCmd(app))
+
+	app.Execute()
+}
+
+func serveCmd(app *alumkit.App) *cobra.Command {
+	var addr string
+	cmd := &cobra.Command{
+		Use:   "serve",
+		Short: "Start the HTTP server",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return app.Serve(addr)
+		},
+	}
+	cmd.Flags().StringVar(&addr, "addr", ":"+getEnv("PORT", "8080"), "Address to listen on")
+	return cmd
 }
 
 func homepageHandler(app *alumkit.App) http.HandlerFunc {
